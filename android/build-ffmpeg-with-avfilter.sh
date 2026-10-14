@@ -1,11 +1,14 @@
 #! /usr/bin/env bash
 #
-# Build ijkffmpeg from source WITH avfilter filters enabled.
+# Build ijkffmpeg from source WITH avfilter filters enabled, then let the normal
+# gradle step package the AAR.
 #
-# The toolchain "install" step downloads a prebuilt ijkffmpeg whose ffmpeg was
-# configured with `--disable-filters`, so no avfilter filter (volume, alimiter,
-# dynaudnorm, ...) exists at runtime. This script patches the toolchain ffmpeg
-# config and recompiles ijkffmpeg from source so the `af` player option works.
+# Two things block the stock pipeline on this fork:
+#   1) the toolchain's prebuilt ijkffmpeg was configured with `--disable-filters`,
+#      so no avfilter filter (volume / alimiter / dynaudnorm / ...) exists at
+#      runtime -> we recompile ijkffmpeg from source with filters enabled.
+#   2) the pinned soundtouch android release (soundtouch-2.3.3-250428092710) was
+#      deleted upstream -> we repoint the tag at a release that still exists.
 
 set -e
 
@@ -14,16 +17,26 @@ cd "$THIS_DIR"
 
 FFTC=../FFToolChain
 
-echo "=== install prebuilt deps (same set as install-ffmpeg.sh: soundtouch + yuv) ==="
+# portable in-place sed: patch_file <file> <sed-expr>
+patch_file() {
+    if [ "$(uname)" = "Darwin" ]; then
+        sed -i '' -e "$2" "$1"
+    else
+        sed -i -e "$2" "$1"
+    fi
+}
+
+echo "=== fix deps: soundtouch android prebuilt tag was deleted upstream ==="
+STCFG="$FFTC/configs/libs/soundtouch.sh"
+patch_file "$STCFG" 's|^export PRE_COMPILE_TAG_ANDROID=.*|export PRE_COMPILE_TAG_ANDROID=soundtouch-2.4.1-260824190319|'
+grep -n 'PRE_COMPILE_TAG_ANDROID' "$STCFG"
+
+echo "=== install prebuilt deps (soundtouch + yuv) ==="
 "$FFTC/main.sh" install -l 'soundtouch yuv' -p android
 
 echo "=== enable avfilter filters in ijk ffmpeg config ==="
 FFCFG="$FFTC/configs/ijk-ffmpeg-config/module-lite.sh"
-if [ "$(uname)" = "Darwin" ]; then
-    sed -i '' -e '/--disable-filters/d' "$FFCFG"
-else
-    sed -i -e '/--disable-filters/d' "$FFCFG"
-fi
+patch_file "$FFCFG" '/--disable-filters/d'
 if grep -q -- '--disable-filters' "$FFCFG"; then
     echo "!! failed to remove --disable-filters" >&2
     exit 1
