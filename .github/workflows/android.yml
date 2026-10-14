@@ -38,8 +38,17 @@ jobs:
       uses: cardinalby/export-env-action@v2
       with:
         envFile: 'constants.env'
-    - name: Download Pre Compiled Dependencies
-      run: cd android && ./install-ffmpeg.sh
+    - name: Setup Android NDK env
+      run: |
+        NDK="${ANDROID_NDK_HOME:-${ANDROID_NDK_ROOT:-${ANDROID_NDK:-${ANDROID_NDK_LATEST_HOME:-}}}}"
+        if [ -z "$NDK" ] && [ -n "$ANDROID_HOME" ] && [ -d "$ANDROID_HOME/ndk" ]; then
+          NDK="$ANDROID_HOME/ndk/$(ls -1 "$ANDROID_HOME/ndk" | sort -V | tail -n 1)"
+        fi
+        echo "ANDROID_NDK_HOME=$NDK" >> "$GITHUB_ENV"
+        echo "Resolved NDK: $NDK"
+        [ -n "$NDK" ] || { echo "!! No Android NDK found"; exit 1; }
+    - name: Build ffmpeg from source with avfilter
+      run: cd android && bash build-ffmpeg-with-avfilter.sh
     - name: Build android arr
       run: cd android && ./build-aar.sh
     - name: Upload Release Asset
