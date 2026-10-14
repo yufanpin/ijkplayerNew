@@ -12,6 +12,11 @@ on:
         description: publish beta edition
         default: true
         required: false
+
+# needed by `gh release create` at the end of the job
+permissions:
+  contents: write
+
 jobs:
   build:
     name: build-android-ijk-aar
@@ -19,7 +24,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
       with:
           submodules: recursive
     - name: Prepare Beta Version
@@ -49,11 +54,17 @@ jobs:
         [ -n "$NDK" ] || { echo "!! No Android NDK found"; exit 1; }
     - name: Build ffmpeg from source with avfilter
       run: cd android && bash build-ffmpeg-with-avfilter.sh
-    - name: Build android arr
+    - name: Build android aar
       run: cd android && ./build-aar.sh
+    - name: Upload AAR artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ijkplayer-cmake-aar
+        path: android/ijkplayer/ijkplayer-cmake/build/outputs/aar/*.aar
+        if-no-files-found: error
     - name: Upload Release Asset
       env:
         GH_TOKEN: ${{ github.token }}
       run: |
         branch=$(git branch --show-current)
-        gh release create ${{ env.TAG }} --target $branch -t "👏👏 ijkplayer-cmake-aar ${{ env.TAG }}" android/ijkplayer/ijkplayer-cmake/build/outputs/aar/*.*
+        gh release create ${{ env.TAG }} --target $branch -t "ijkplayer-cmake-aar ${{ env.TAG }}" android/ijkplayer/ijkplayer-cmake/build/outputs/aar/*.*
