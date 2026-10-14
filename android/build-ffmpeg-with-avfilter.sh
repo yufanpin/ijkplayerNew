@@ -14,8 +14,8 @@ cd "$THIS_DIR"
 
 FFTC=../FFToolChain
 
-echo "=== install prebuilt deps (openssl is required for https when ijkffmpeg is built from source) ==="
-"$FFTC/main.sh" install -l 'openssl soundtouch yuv' -p android
+echo "=== install prebuilt deps (same set as install-ffmpeg.sh: soundtouch + yuv) ==="
+"$FFTC/main.sh" install -l 'soundtouch yuv' -p android
 
 echo "=== enable avfilter filters in ijk ffmpeg config ==="
 FFCFG="$FFTC/configs/ijk-ffmpeg-config/module-lite.sh"
