@@ -24,12 +24,12 @@
 
 #include "libffmpeg/config.h"
 
-// FIXME: merge filter related code and enable it
-// remove these lines to enable avfilter
+// enabled: avfilter is needed for the `af` (audio filter) player option
+// (volume / alimiter / dynaudnorm / acompressor / ...)
 #ifdef CONFIG_AVFILTER
 #undef CONFIG_AVFILTER
 #endif
-#define CONFIG_AVFILTER 0
+#define CONFIG_AVFILTER 1
 
 #ifdef FFP_MERGE
 #undef FFP_MERGE
